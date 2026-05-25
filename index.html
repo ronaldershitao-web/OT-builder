@@ -1,46 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>OT Builder Clean</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <title>System Design Learning Lab</title>
 
   <style>
     body{
       margin:0;
       font-family:Arial;
-      background:#0f172a;
-      color:white;
       display:flex;
       height:100vh;
-    }
-
-    #auth{
-      width:100%;
-      padding:20px;
-    }
-
-    input,button{
-      padding:8px;
-      margin:5px;
-    }
-
-    #app{
-      display:none;
-      width:100%;
-      height:100%;
+      background:#0f172a;
+      color:white;
     }
 
     #left{
-      width:220px;
+      width:260px;
       background:#111827;
       padding:10px;
+      overflow:auto;
     }
 
     #canvas{
       flex:1;
-      background:#0b1220;
       position:relative;
+      background:#0b1220;
+      overflow:hidden;
     }
 
     #right{
@@ -50,255 +34,243 @@
     }
 
     .item{
-      background:#1f2937;
-      padding:8px;
+      padding:6px;
       margin:5px;
-      cursor:grab;
+      background:#1f2937;
       border-radius:6px;
+      cursor:grab;
+      font-size:12px;
     }
 
     .node{
       position:absolute;
-      padding:10px;
-      background:#1f2937;
+      padding:8px;
       border-radius:6px;
-      cursor:move;
-      min-width:80px;
+      cursor:pointer;
+      font-size:11px;
+      min-width:90px;
       text-align:center;
-      font-size:12px;
+      user-select:none;
+    }
+
+    .api { background:#2563eb; }
+    .data { background:#16a34a; }
+    .infra { background:#f59e0b; }
+    .security { background:#ef4444; }
+    .compute { background:#8b5cf6; }
+
+    svg{
+      position:absolute;
+      width:100%;
+      height:100%;
+      pointer-events:none;
+    }
+
+    .selected{
+      outline:2px solid white;
+    }
+
+    button{
+      padding:6px;
+      margin-top:5px;
     }
   </style>
 </head>
 
 <body>
 
-<!-- AUTH -->
-<div id="auth">
-  <h2>OT Builder Login</h2>
+<!-- LEFT TOOLBOX -->
+<div id="left">
+  <h3>System Design Tools</h3>
 
-  <input id="email" placeholder="email">
-  <input id="password" type="password" placeholder="password">
+  <h4>API / Integration</h4>
+  <div class="item" onclick="add('API_GATEWAY','api')">API Gateway</div>
+  <div class="item" onclick="add('REST_API','api')">REST API</div>
+  <div class="item" onclick="add('KAFKA','api')">Kafka Event Bus</div>
+  <div class="item" onclick="add('WEBHOOK','api')">Webhook</div>
 
-  <button onclick="login()">Login</button>
-  <button onclick="signup()">Sign Up</button>
+  <h4>Compute</h4>
+  <div class="item" onclick="add('MICROSERVICE','compute')">Microservice</div>
+  <div class="item" onclick="add('SERVERLESS','compute')">Serverless Function</div>
+  <div class="item" onclick="add('BATCH','compute')">Batch Job</div>
+
+  <h4>Data</h4>
+  <div class="item" onclick="add('SQL_DB','data')">SQL Database</div>
+  <div class="item" onclick="add('NOSQL','data')">NoSQL DB</div>
+  <div class="item" onclick="add('REDIS','data')">Redis Cache</div>
+  <div class="item" onclick="add('WAREHOUSE','data')">Data Warehouse</div>
+
+  <h4>Infra</h4>
+  <div class="item" onclick="add('LOAD_BALANCER','infra')">Load Balancer</div>
+  <div class="item" onclick="add('CDN','infra')">CDN</div>
+  <div class="item" onclick="add('VPC','infra')">VPC</div>
+
+  <h4>Security</h4>
+  <div class="item" onclick="add('AUTH','security')">Auth Service</div>
+  <div class="item" onclick="add('WAF','security')">WAF</div>
+  <div class="item" onclick="add('FIREWALL','security')">Firewall</div>
+
 </div>
 
-<!-- APP -->
-<div id="app">
+<!-- CANVAS -->
+<div id="canvas" onclick="clearSelection()">
+  <svg id="lines"></svg>
+</div>
 
-  <div id="left">
-    <h3>Design Box</h3>
+<!-- RIGHT PANEL -->
+<div id="right">
+  <h3>Controls</h3>
 
-    <div class="item" draggable="true" ondragstart="drag('ERP')">ERP</div>
-    <div class="item" draggable="true" ondragstart="drag('MES')">MES</div>
-    <div class="item" draggable="true" ondragstart="drag('DB')">Database</div>
-    <div class="item" draggable="true" ondragstart="drag('API')">API</div>
-    <div class="item" draggable="true" ondragstart="drag('FIREWALL')">Firewall</div>
-
-    <hr>
-
-    <input id="sysName" placeholder="System name">
-    <button onclick="createSystem()">Create System</button>
-
-    <select id="systems" onchange="loadSystem(this.value)"></select>
-  </div>
-
-  <div id="canvas"
-       ondragover="allow(event)"
-       ondrop="drop(event)">
-  </div>
-
-  <div id="right">
-    <h3>Analysis</h3>
-    <button onclick="analyze()">Run</button>
-    <div id="out"></div>
-  </div>
-
+  <button onclick="runAnalysis()">Run Analysis</button>
+  <div id="out"></div>
 </div>
 
 <script>
+let nodes = [];
+let edges = [];
+let selected = null;
 
-/* =======================
-   SUPABASE (ONLY ONCE)
-======================= */
-
-const client = supabase.createClient(
-  "https://sdskmilncpptrsuxowrb.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkc2ttaWxuY3BwdHJzdXhvd3JiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODExNDIsImV4cCI6MjA5NTI1NzE0Mn0.LGfmAnj_WTngOw_I7NsG9pmIit2hwOUW0IfvwY2WgUU"
-);
-
-/* =======================
-   STATE
-======================= */
-
-let user = null;
-let currentSystem = null;
-let dragType = null;
-
-/* =======================
-   AUTH (GLOBAL SAFE)
-======================= */
-
-window.signup = async function () {
-
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  const { error } = await client.auth.signUp({ email, password });
-
-  if(error) return alert(error.message);
-
-  alert("Signup successful (check email if required)");
-};
-
-window.login = async function () {
-
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  const { data, error } = await client.auth.signInWithPassword({
-    email,
-    password
-  });
-
-  if(error) return alert(error.message);
-
-  user = data.user;
-
-  document.getElementById("auth").style.display = "none";
-  document.getElementById("app").style.display = "flex";
-
-  loadSystems();
-};
-
-/* =======================
-   SYSTEM
-======================= */
-
-window.createSystem = async function () {
-
-  const name = document.getElementById("sysName").value;
-
-  const { data, error } = await client
-    .from("systems")
-    .insert([{ name, user_id: user.id }])
-    .select();
-
-  if(error) return alert(error.message);
-
-  currentSystem = data[0].id;
-
-  loadSystems();
-  loadNodes();
-};
-
-async function loadSystems(){
-
-  const { data } = await client
-    .from("systems")
-    .select("*")
-    .eq("user_id", user.id);
-
-  const sel = document.getElementById("systems");
-  sel.innerHTML = "";
-
-  (data || []).forEach(s=>{
-    const opt = document.createElement("option");
-    opt.value = s.id;
-    opt.innerText = s.name;
-    sel.appendChild(opt);
-  });
-
-  if(data.length){
-    loadSystem(data[0].id);
-  }
-}
-
-window.loadSystem = function(id){
-  currentSystem = id;
-  loadNodes();
-};
-
-/* =======================
-   DRAG DROP
-======================= */
-
-window.drag = function(type){
-  dragType = type;
-};
-
-window.allow = function(e){
-  e.preventDefault();
-};
-
-window.drop = async function(e){
-
-  e.preventDefault();
-
-  if(!dragType || !currentSystem) return;
+function add(type, cls){
 
   const node = {
-    system_id: currentSystem,
-    type: dragType,
-    x: e.offsetX,
-    y: e.offsetY
+    id: Date.now(),
+    type,
+    cls,
+    x: 100 + Math.random()*300,
+    y: 100 + Math.random()*300
   };
 
-  await client.from("nodes").insert([node]);
+  nodes.push(node);
+  render();
+}
 
-  renderNode(node);
-};
+function render(){
 
-/* =======================
-   NODES
-======================= */
-
-async function loadNodes(){
+  const canvas = document.getElementById("canvas");
 
   document.querySelectorAll(".node").forEach(n=>n.remove());
+  drawLines();
 
-  const { data } = await client
-    .from("nodes")
-    .select("*")
-    .eq("system_id", currentSystem);
+  nodes.forEach(n=>{
+    const div = document.createElement("div");
+    div.className = "node " + n.cls;
+    div.style.left = n.x + "px";
+    div.style.top = n.y + "px";
+    div.innerText = n.type;
 
-  (data || []).forEach(renderNode);
+    div.onclick = (e)=>{
+      e.stopPropagation();
+      selectNode(n);
+    };
+
+    div.onmousedown = (e)=>{
+      dragNode(e,n);
+    };
+
+    canvas.appendChild(div);
+  });
 }
 
-function renderNode(n){
+function selectNode(n){
 
-  const div = document.createElement("div");
-  div.className = "node";
-  div.innerText = n.type;
+  if(!selected){
+    selected = n;
+    return;
+  }
 
-  div.style.left = n.x + "px";
-  div.style.top = n.y + "px";
+  if(selected.id !== n.id){
+    edges.push({from:selected.id,to:n.id});
+  }
 
-  document.getElementById("canvas").appendChild(div);
+  selected = null;
+  render();
 }
 
-/* =======================
-   ANALYSIS
-======================= */
+function clearSelection(){
+  selected = null;
+}
 
-window.analyze = async function () {
+function dragNode(e,node){
 
-  const { data } = await client
-    .from("nodes")
-    .select("*")
-    .eq("system_id", currentSystem);
+  let offsetX = e.clientX - node.x;
+  let offsetY = e.clientY - node.y;
+
+  function move(ev){
+    node.x = ev.clientX - offsetX;
+    node.y = ev.clientY - offsetY;
+    render();
+  }
+
+  function up(){
+    document.removeEventListener("mousemove",move);
+    document.removeEventListener("mouseup",up);
+  }
+
+  document.addEventListener("mousemove",move);
+  document.addEventListener("mouseup",up);
+}
+
+function drawLines(){
+
+  const svg = document.getElementById("lines");
+  svg.innerHTML = "";
+
+  edges.forEach(e=>{
+
+    const a = nodes.find(n=>n.id===e.from);
+    const b = nodes.find(n=>n.id===e.to);
+
+    if(!a||!b) return;
+
+    const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+
+    line.setAttribute("x1", a.x+50);
+    line.setAttribute("y1", a.y+20);
+    line.setAttribute("x2", b.x+50);
+    line.setAttribute("y2", b.y+20);
+    line.setAttribute("stroke","white");
+
+    svg.appendChild(line);
+  });
+}
+
+function runAnalysis(){
 
   let count = {};
+  let missing = [];
 
-  (data || []).forEach(n=>{
-    count[n.type] = (count[n.type] || 0) + 1;
+  nodes.forEach(n=>{
+    count[n.type] = (count[n.type]||0)+1;
   });
 
-  document.getElementById("out").innerHTML =
-    Object.entries(count)
-      .map(([k,v])=>`<p>${k}: ${v}</p>`)
-      .join("");
-};
+  let hasDB = nodes.some(n=>n.cls==="data");
+  let hasAPI = nodes.some(n=>n.cls==="api");
+  let hasSecurity = nodes.some(n=>n.cls==="security");
+  let hasInfra = nodes.some(n=>n.cls==="infra");
+
+  if(!hasAPI) missing.push("No API layer detected");
+  if(!hasDB) missing.push("No database found");
+  if(!hasSecurity) missing.push("No security layer (Auth/WAF)");
+  if(!hasInfra) missing.push("No infrastructure layer (LB/CDN)");
+
+  let html = "<h4>System Summary</h4>";
+
+  html += Object.entries(count)
+    .map(([k,v])=>`<p>${k}: ${v}</p>`)
+    .join("");
+
+  html += "<h4>Insights</h4>";
+
+  if(missing.length===0){
+    html += "<p>✔ Good architecture coverage</p>";
+  } else {
+    missing.forEach(m=>{
+      html += "<p>⚠ "+m+"</p>";
+    });
+  }
+
+  document.getElementById("out").innerHTML = html;
+}
 
 </script>
 
