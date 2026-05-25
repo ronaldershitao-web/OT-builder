@@ -131,7 +131,7 @@ async function nextStep1(){
   const { data, error } = await client
     .from("systems")
     .insert([{
-      system_name: name,
+      name: name,
       template: "ACADEMIA",
       user_id: user.id
     }])
@@ -211,7 +211,7 @@ async function loadSystems(){
   document.getElementById("systemList").innerHTML =
     (data || []).map(s =>
       `<div class="box" onclick="openSystem('${s.id}')">
-        🏫 ${s.system_name}
+        🏫 ${s.name}
       </div>`
     ).join("");
 }
