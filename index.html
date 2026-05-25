@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>OT System Thinking Builder</title>
+  <title>OT Builder - Full Single File</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
   <style>
-    body {
+    body{
       margin:0;
       font-family:Arial;
       background:#0f172a;
@@ -13,286 +15,294 @@
       height:100vh;
     }
 
-    /* LEFT PANEL */
-    #leftPanel {
-      width:260px;
-      background:#111827;
-      padding:10px;
-      overflow:auto;
+    /* AUTH */
+    #auth{
+      width:100%;
+      padding:20px;
     }
 
-    .template {
-      padding:10px;
-      margin:5px;
-      background:#1f2937;
-      border-radius:8px;
-      cursor:pointer;
-    }
-
-    .palette-item {
+    input, button, select{
       padding:8px;
       margin:5px;
-      background:#1f2937;
-      border-radius:6px;
-      cursor:grab;
-      font-size:13px;
     }
 
-    /* CENTER CANVAS */
-    #canvas {
+    /* APP LAYOUT */
+    #app{
+      display:none;
+      width:100%;
+      height:100%;
+    }
+
+    #left{
+      width:220px;
+      background:#111827;
+      padding:10px;
+    }
+
+    #canvas{
       flex:1;
       background:#0b1220;
       position:relative;
-      border-left:1px solid #1f2937;
-      border-right:1px solid #1f2937;
     }
 
-    .node {
+    #right{
+      width:260px;
+      background:#111827;
+      padding:10px;
+    }
+
+    .item{
+      background:#1f2937;
+      padding:8px;
+      margin:5px;
+      cursor:grab;
+      border-radius:6px;
+    }
+
+    .node{
       position:absolute;
       padding:10px;
       background:#1f2937;
-      border-radius:8px;
+      border-radius:6px;
       cursor:move;
-      min-width:120px;
+      min-width:80px;
       text-align:center;
       font-size:12px;
     }
 
-    /* RIGHT PANEL */
-    #rightPanel {
-      width:300px;
-      background:#111827;
-      padding:10px;
-      overflow:auto;
-    }
-
-    .box {
+    .box{
       background:#1f2937;
       padding:10px;
+      margin-top:10px;
       border-radius:8px;
-      margin-bottom:10px;
     }
-
-    .hint {
-      font-size:12px;
-      color:#93c5fd;
-      margin-top:5px;
-    }
-
-    button {
-      padding:8px;
-      margin-top:5px;
-      width:100%;
-      cursor:pointer;
-    }
-
-    /* FIREWALL MODAL */
-    #firewallModal {
-      position:fixed;
-      top:20%;
-      left:30%;
-      width:400px;
-      background:#111827;
-      border:1px solid #334155;
-      padding:15px;
-      display:none;
-      z-index:10;
-    }
-
-    input {
-      width:100%;
-      margin:5px 0;
-      padding:6px;
-    }
-
   </style>
 </head>
 
 <body>
 
-<!-- LEFT -->
-<div id="leftPanel">
+<!-- AUTH -->
+<div id="auth">
+  <h2>OT Builder Login</h2>
 
-  <h3>📦 Templates</h3>
+  <input id="email" placeholder="email">
+  <input id="password" type="password" placeholder="password">
 
-  <div class="template" onclick="loadTemplate('campus')">🎓 Campus System</div>
-  <div class="template" onclick="loadTemplate('factory')">🏭 Factory System</div>
-  <div class="template" onclick="loadTemplate('healthcare')">🏥 Healthcare System</div>
-  <div class="template" onclick="loadTemplate('blank')">✨ Blank System</div>
-
-  <hr>
-
-  <h3>🧩 Design Box</h3>
-
-  <div class="palette-item" draggable="true" ondragstart="dragStart(event,'DATABASE')">🗄 Database</div>
-  <div class="palette-item" draggable="true" ondragstart="dragStart(event,'API')">🔗 API</div>
-  <div class="palette-item" draggable="true" ondragstart="dragStart(event,'SERVER')">🖥 Server</div>
-  <div class="palette-item" draggable="true" ondragstart="dragStart(event,'PROCESS')">⚙ Process Engine</div>
-  <div class="palette-item" draggable="true" ondragstart="dragStart(event,'DASHBOARD')">📊 Dashboard</div>
-  <div class="palette-item" draggable="true" ondragstart="dragStart(event,'FIREWALL')">🛡 Firewall</div>
-
+  <button onclick="signup()">Sign Up</button>
+  <button onclick="login()">Login</button>
 </div>
 
-<!-- CANVAS -->
-<div id="canvas" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
+<!-- APP -->
+<div id="app">
 
-<!-- RIGHT PANEL -->
-<div id="rightPanel">
+  <!-- LEFT -->
+  <div id="left">
+    <h3>Design Box</h3>
 
-  <div class="box">
-    <h3>🧠 System Thinking Panel</h3>
+    <div class="item" draggable="true" ondragstart="drag('ERP')">ERP</div>
+    <div class="item" draggable="true" ondragstart="drag('MES')">MES</div>
+    <div class="item" draggable="true" ondragstart="drag('DB')">Database</div>
+    <div class="item" draggable="true" ondragstart="drag('API')">API</div>
+    <div class="item" draggable="true" ondragstart="drag('FIREWALL')">Firewall</div>
 
-    <b>📥 DATA</b>
-    <div class="hint">Where does data come from?</div>
+    <hr>
 
-    <b>⚙ PROCESS</b>
-    <div class="hint">What transforms the data?</div>
+    <input id="sysName" placeholder="System name">
+    <button onclick="createSystem()">Create System</button>
 
-    <b>📤 OUTPUT</b>
-    <div class="hint">Where does results go?</div>
-
-    <b>🔐 CONTROL</b>
-    <div class="hint">Who can access it?</div>
+    <select id="systems" onchange="loadSystem(this.value)"></select>
   </div>
 
-  <div class="box">
-    <h3>📊 System Stats</h3>
-    <button onclick="analyze()">Analyze System</button>
-    <div id="stats"></div>
+  <!-- CANVAS -->
+  <div id="canvas"
+       ondragover="allow(event)"
+       ondrop="drop(event)">
   </div>
 
-</div>
+  <!-- RIGHT -->
+  <div id="right">
+    <h3>System Insight</h3>
+    <button onclick="analyze()">Analyze</button>
+    <div id="out"></div>
+  </div>
 
-<!-- FIREWALL CONFIG -->
-<div id="firewallModal">
-  <h3>🛡 Firewall Configuration</h3>
-
-  <label>Allowed IPs</label>
-  <input id="ipInput" placeholder="e.g. 192.168.1.1">
-
-  <label>Access Mode</label>
-  <select id="mode">
-    <option>Open</option>
-    <option>Restricted</option>
-    <option>Private</option>
-  </select>
-
-  <button onclick="saveFirewall()">Save</button>
-  <button onclick="closeFirewall()">Close</button>
 </div>
 
 <script>
 
+const supabase = window.supabase.createClient(
+  "https://sdskmilncpptrsuxowrb.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkc2ttaWxuY3BwdHJzdXhvd3JiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODExNDIsImV4cCI6MjA5NTI1NzE0Mn0.LGfmAnj_WTngOw_I7NsG9pmIit2hwOUW0IfvwY2WgUU"
+);
+
+let user = null;
+let currentSystem = null;
 let dragType = null;
-let selectedFirewall = null;
-let nodes = [];
 
-/* ---------------- TEMPLATE ---------------- */
+/* ---------------- AUTH ---------------- */
 
-function loadTemplate(type){
+async function signup(){
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-  nodes = [];
-  document.getElementById("canvas").innerHTML = "";
+  const { error } = await supabase.auth.signUp({ email, password });
 
-  const templates = {
-    campus: ["DATABASE","API","PROCESS","DASHBOARD"],
-    factory: ["SERVER","PROCESS","DATABASE","FIREWALL"],
-    healthcare: ["DATABASE","PROCESS","API"],
-    blank: []
-  };
-
-  (templates[type] || []).forEach((t,i)=>{
-    createNode(t, 50 + i*120, 100);
-  });
+  if(error) return alert(error.message);
+  alert("Check email to confirm");
 }
 
-/* ---------------- DRAG ---------------- */
+async function login(){
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-function dragStart(e,type){
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email, password
+  });
+
+  if(error) return alert(error.message);
+
+  user = data.user;
+
+  document.getElementById("auth").style.display = "none";
+  document.getElementById("app").style.display = "flex";
+
+  loadSystems();
+}
+
+/* ---------------- SYSTEM ---------------- */
+
+async function createSystem(){
+
+  const name = document.getElementById("sysName").value;
+
+  const { data, error } = await supabase
+    .from("systems")
+    .insert([{ name, user_id: user.id }])
+    .select();
+
+  if(error) return alert(error.message);
+
+  currentSystem = data[0].id;
+
+  loadSystems();
+  loadNodes();
+}
+
+async function loadSystems(){
+
+  const { data } = await supabase
+    .from("systems")
+    .select("*")
+    .eq("user_id", user.id);
+
+  const sel = document.getElementById("systems");
+  sel.innerHTML = "";
+
+  (data || []).forEach(s=>{
+    const opt = document.createElement("option");
+    opt.value = s.id;
+    opt.innerText = s.name;
+    sel.appendChild(opt);
+  });
+
+  if(data.length){
+    loadSystem(data[0].id);
+  }
+}
+
+function loadSystem(id){
+  currentSystem = id;
+  loadNodes();
+}
+
+/* ---------------- DRAG DROP ---------------- */
+
+function drag(type){
   dragType = type;
 }
 
-function allowDrop(e){
+function allow(e){
   e.preventDefault();
 }
 
-function drop(e){
+async function drop(e){
   e.preventDefault();
 
-  if(!dragType) return;
+  if(!dragType || !currentSystem) return;
 
-  createNode(dragType, e.offsetX, e.offsetY);
-  dragType = null;
-}
-
-/* ---------------- NODE CREATION ---------------- */
-
-function createNode(type,x,y){
-
-  const canvas = document.getElementById("canvas");
-
-  const node = document.createElement("div");
-  node.className = "node";
-  node.innerText = type;
-
-  node.style.left = x + "px";
-  node.style.top = y + "px";
-
-  node.dataset.type = type;
-
-  node.draggable = true;
-
-  node.ondragend = (ev)=>{
-    node.style.left = ev.pageX - canvas.offsetLeft + "px";
-    node.style.top = ev.pageY - canvas.offsetTop + "px";
+  const node = {
+    system_id: currentSystem,
+    type: dragType,
+    x: e.offsetX,
+    y: e.offsetY
   };
 
-  node.onclick = ()=>{
-    if(type === "FIREWALL"){
-      openFirewall(node);
-    }
+  await supabase.from("nodes").insert([node]);
+
+  renderNode(node);
+}
+
+/* ---------------- NODES ---------------- */
+
+async function loadNodes(){
+
+  document.querySelectorAll(".node").forEach(n=>n.remove());
+
+  const { data } = await supabase
+    .from("nodes")
+    .select("*")
+    .eq("system_id", currentSystem);
+
+  (data || []).forEach(renderNode);
+}
+
+function renderNode(n){
+
+  const div = document.createElement("div");
+  div.className = "node";
+  div.innerText = n.type;
+
+  div.style.left = n.x + "px";
+  div.style.top = n.y + "px";
+
+  div.draggable = true;
+
+  div.ondragend = async (e)=>{
+
+    const x = e.pageX;
+    const y = e.pageY;
+
+    div.style.left = x + "px";
+    div.style.top = y + "px";
+
+    await supabase
+      .from("nodes")
+      .update({ x, y })
+      .eq("id", n.id);
   };
 
-  canvas.appendChild(node);
-
-  nodes.push({type,x,y});
-}
-
-/* ---------------- FIREWALL ---------------- */
-
-function openFirewall(node){
-  selectedFirewall = node;
-  document.getElementById("firewallModal").style.display = "block";
-}
-
-function closeFirewall(){
-  document.getElementById("firewallModal").style.display = "none";
-}
-
-function saveFirewall(){
-  const ip = document.getElementById("ipInput").value;
-  const mode = document.getElementById("mode").value;
-
-  selectedFirewall.dataset.ip = ip;
-  selectedFirewall.dataset.mode = mode;
-
-  alert("Firewall configured");
-  closeFirewall();
+  document.getElementById("canvas").appendChild(div);
 }
 
 /* ---------------- ANALYSIS ---------------- */
 
-function analyze(){
+async function analyze(){
+
+  const { data } = await supabase
+    .from("nodes")
+    .select("*")
+    .eq("system_id", currentSystem);
 
   let count = {};
 
-  document.querySelectorAll(".node").forEach(n=>{
-    count[n.dataset.type] = (count[n.dataset.type]||0)+1;
+  (data || []).forEach(n=>{
+    count[n.type] = (count[n.type] || 0) + 1;
   });
 
-  document.getElementById("stats").innerHTML =
-    Object.keys(count).map(k=>`<p>${k}: ${count[k]}</p>`).join("");
-
+  document.getElementById("out").innerHTML =
+    Object.entries(count)
+    .map(([k,v])=>`<p>${k}: ${v}</p>`)
+    .join("");
 }
 
 </script>
