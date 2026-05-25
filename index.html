@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>OT Builder - Canvas Architecture</title>
+  <title>OT Builder - Architecture Canvas</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
@@ -13,6 +13,11 @@
       padding:20px;
     }
 
+    .layout {
+      display:flex;
+      gap:10px;
+    }
+
     .box {
       background:#111827;
       padding:15px;
@@ -22,27 +27,33 @@
 
     .hidden { display:none; }
 
-    .layout {
-      display:flex;
-      gap:10px;
-    }
-
+    /* CANVAS */
     #canvas {
       width:60%;
-      height:600px;
+      height:650px;
       background:#0b1220;
-      position:relative;
       border:1px solid #1f2937;
+      position:relative;
+      overflow:hidden;
     }
 
+    /* NODE */
     .node {
       position:absolute;
       padding:10px;
       background:#1f2937;
       border-radius:8px;
       cursor:move;
-      min-width:100px;
+      min-width:120px;
       text-align:center;
+      font-size:12px;
+    }
+
+    /* PALETTE */
+    .palette {
+      width:20%;
+      max-height:650px;
+      overflow:auto;
     }
 
     .palette-item {
@@ -51,13 +62,21 @@
       background:#1f2937;
       border-radius:6px;
       cursor:grab;
+      font-size:13px;
     }
+
+    .category-title {
+      margin-top:15px;
+      font-weight:bold;
+      color:#93c5fd;
+    }
+
   </style>
 </head>
 
 <body>
 
-<h1>🧠 OT Builder (Canvas Architecture Designer)</h1>
+<h1>🧠 OT Builder - Architecture Canvas Designer</h1>
 
 <!-- AUTH -->
 <div id="authBox" class="box">
@@ -72,22 +91,61 @@
 <div id="app" class="hidden">
 
   <div class="box">
-    <h3>🏫 OT Architecture Canvas</h3>
+    <h3>🏫 Drag & Drop Architecture Builder</h3>
+    <p>Design real-world OT / IT systems like SAP, MES, Cloud, Healthcare</p>
   </div>
 
   <div class="layout">
 
     <!-- PALETTE -->
-    <div class="box" style="width:20%;">
-      <h3>🧩 Design Box</h3>
+    <div class="box palette">
 
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'ERP')">📦 ERP</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'MES')">⚙ MES</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'RULE')">📜 RULE</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'DB')">🗄 Database</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'LB')">⚖ Load Balancer</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'MULE')">🔗 MuleSoft</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'SAP')">📘 SAP Module</div>
+      <div class="category-title">🏫 Campus Systems</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'STUDENT_SYSTEM')">Student System</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'LMS')">Learning Management</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'ENROLLMENT')">Enrollment System</div>
+
+      <div class="category-title">🏭 Manufacturing / OT</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'MES')">MES Execution System</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'SCADA')">SCADA Control</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'OEE')">OEE Monitoring</div>
+
+      <div class="category-title">📦 Logistics</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'WMS')">Warehouse System</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'TMS')">Transport System</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'TRACKING')">Tracking System</div>
+
+      <div class="category-title">🏥 Healthcare</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'HIS')">Hospital System</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'LIMS')">Lab System</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'PHARMACY')">Pharmacy System</div>
+
+      <div class="category-title">🏢 Enterprise</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'ERP')">ERP System</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'HR')">HR System</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'FINANCE')">Finance System</div>
+
+      <div class="category-title">🔗 Integration</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'API')">API Gateway</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'ESB')">ESB</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'MULESOFT')">MuleSoft</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'MQ')">Message Queue</div>
+
+      <div class="category-title">☁ Infrastructure</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'DB')">Database</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'SERVER')">App Server</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'LB')">Load Balancer</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'CLOUD')">Cloud Node</div>
+
+      <div class="category-title">🔐 Security</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'IAM')">Identity Access</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'FIREWALL')">Firewall</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'AUDIT')">Audit Logs</div>
+
+      <div class="category-title">📡 OT Devices</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'SENSOR')">IoT Sensor</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'ROBOT')">Robot</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'CONVEYOR')">Conveyor</div>
 
     </div>
 
@@ -97,20 +155,19 @@
          ondrop="drop(event)">
     </div>
 
-    <!-- INFO -->
+    <!-- OUTPUT -->
     <div class="box" style="width:20%;">
-      <h3>📊 System View</h3>
-      <button onclick="runSimulation()">Run Simulation</button>
+      <h3>📊 Simulation</h3>
+      <button onclick="runSimulation()">Run</button>
       <div id="output"></div>
     </div>
 
   </div>
-
 </div>
 
 <script>
 const supabaseUrl = "https://sdskmilncpptrsuxowrb.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkc2ttaWxuY3BwdHJzdXhvd3JiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODExNDIsImV4cCI6MjA5NTI1NzE0Mn0.LGfmAnj_WTngOw_I7NsG9pmIit2hwOUW0IfvwY2WgUU";
+const supabaseKey = "YOUR_KEY";
 
 const client = supabase.createClient(supabaseUrl, supabaseKey);
 
@@ -146,7 +203,7 @@ async function login(){
   document.getElementById("app").classList.remove("hidden");
 }
 
-/* ---------------- DRAG SYSTEM ---------------- */
+/* ---------------- DRAG ---------------- */
 
 function dragStart(e, type){
   dragType = type;
@@ -179,15 +236,6 @@ async function drop(e){
 
   canvas.appendChild(node);
 
-  /* SAVE TO SUPABASE */
-  if(currentSystem){
-    await client.from("nodes").insert([{
-      system_id: currentSystem,
-      name: dragType,
-      layer: dragType
-    }]);
-  }
-
   dragType = null;
 }
 
@@ -195,32 +243,19 @@ async function drop(e){
 
 async function runSimulation(){
 
-  const { data } = await client
-    .from("nodes")
-    .select("*")
-    .eq("system_id", currentSystem);
+  const nodes = document.querySelectorAll(".node");
 
-  if(!data) return;
+  let count = {};
 
-  let erp = data.filter(n => n.layer === "ERP").length;
-  let mes = data.filter(n => n.layer === "MES").length;
-  let rule = data.filter(n => n.layer === "RULE").length;
-  let db = data.filter(n => n.layer === "DB").length;
+  nodes.forEach(n => {
+    let key = n.innerText;
+    count[key] = (count[key] || 0) + 1;
+  });
 
-  let load = mes === 0 ? erp : erp / mes;
-
-  document.getElementById("output").innerHTML = `
-    <p>ERP: ${erp}</p>
-    <p>MES: ${mes}</p>
-    <p>RULE: ${rule}</p>
-    <p>DB: ${db}</p>
-
-    <p><b>Load Index:</b> ${load.toFixed(2)}</p>
-
-    <p style="color:${load > 3 ? 'red' : 'lightgreen'}">
-      ${load > 3 ? '⚠ Bottleneck Detected' : '✔ System Stable'}
-    </p>
-  `;
+  document.getElementById("output").innerHTML =
+    Object.keys(count).map(k =>
+      `<p>${k}: ${count[k]}</p>`
+    ).join("");
 }
 </script>
 
