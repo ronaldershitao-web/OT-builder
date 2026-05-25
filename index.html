@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OT Builder Platform</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <style>
+    body { font-family: Arial; background:#0f172a; color:white; padding:20px; }
+    input, select, button { padding:10px; margin:5px; }
+    .box { background:#111827; padding:15px; margin-top:10px; border-radius:10px; }
+    .hidden { display:none; }
+  </style>
+</head>
+
+<body>
+
+<h1>🧠 OT Builder (ERP → MES → RULE → NODE)</h1>
+
+<!-- LOGIN -->
+<div id="authBox" class="box">
+  <h3>Login / Sign Up</h3>
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="signup()">Sign Up</button>
+  <button onclick="login()">Login</button>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+
+  <div class="box">
+    <h3>Create OT System</h3>
+    <input id="systemName" placeholder="System Name">
+    <button onclick="createSystem()">Create</button>
+  </div>
+
+  <div class="box">
+    <h3>Add Component (OT Layers)</h3>
+
+    <input id="compName" placeholder="Component Name">
+
+    <select id="compType">
+      <option value="ERP">ERP (Input)</option>
+      <option value="MES">MES (Execution)</option>
+      <option value="RULE">RULE (Integration)</option>
+      <option value="NODE">NODE (Load Balancer)</option>
+    </select>
+
+    <button onclick="addComponent()">Add</button>
+  </div>
+
+  <div class="box">
+    <h3>Your Systems</h3>
+    <div id="systemList"></div>
+  </div>
+
+  <div class="box">
+    <h3>System View</h3>
+    <div id="components"></div>
+  </div>
+
+  <div class="box">
+    <h3>Run OT Simulation</h3>
+    <button onclick="run()">▶ Run Flow</button>
+    <div id="output"></div>
+  </div>
+
+</div>
+
+<script>
+const supabaseUrl = "YOUR_SUPABASE_URL";
+const supabaseKey = "YOUR_SUPABASE_ANON_KEY";
+
+const client = supabase.createClient(supabaseUrl, supabaseKey);
+
+let user = null;
+let currentSystem = null;
+
+// AUTH
+async function signup(){
+  const email = email.value;
+  const password = password.value;
+  await client.auth.signUp({ email, password });
+  alert("Signed up!");
+}
+
+async function login(){
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  const { data, error } = await client.auth.signInWithPassword({
+    email, password
+  });
+
+  user = data.user;
+
+  document.getElementById("authBox").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+
+  loadSystems();
+}
+
+// CREATE SYSTEM
+async function createSystem(){
+  const name = document.getElementById("systemName").value;
+
+  const { data } = await client
+    .from("systems")
+    .insert([{ system_name: name, user_id: user.id }])
+    .select();
+
+  currentSystem = data[0].id;
+
+  loadSystems();
+}
+
+// ADD COMPONENT
+async function addComponent(){
+  const name = document.getElementById("compName").value;
+  const type = document.getElementById("compType").value;
+
+  await client.from("components").insert([{
+    system_id: currentSystem,
+    name,
+    type
+  }]);
+
+  loadComponents();
+}
+
+// LOAD SYSTEMS
+async function loadSystems(){
+  const { data } = await client
+    .from("systems")
+    .select("*")
+    .eq("user_id", user.id);
+
+  document.getElementById("systemList").innerHTML =
+    data.map(s =>
+      `<div class="box" onclick="openSystem('${s.id}')">
+        ${s.system_name}
+      </div>`
+    ).join("");
+}
+
+function openSystem(id){
+  currentSystem = id;
+  loadComponents();
+}
+
+// LOAD COMPONENTS
+async function loadComponents(){
+  const { data } = await client
+    .from("components")
+    .select("*")
+    .eq("system_id", currentSystem);
+
+  document.getElementById("components").innerHTML =
+    data.map(c => `<div>${c.type}: ${c.name}</div>`).join("");
+}
+
+// SIMULATION
+async function run(){
+  const { data } = await client
+    .from("components")
+    .select("*")
+    .eq("system_id", currentSystem);
+
+  let erp = data.filter(x => x.type === "ERP").length;
+  let mes = data.filter(x => x.type === "MES").length;
+  let node = data.filter(x => x.type === "NODE").length;
+
+  let load = (erp + mes) / (node || 1);
+
+  document.getElementById("output").innerHTML =
+    `
+    <p>ERP: ${erp}</p>
+    <p>MES: ${mes}</p>
+    <p>NODES: ${node}</p>
+    <p><b>Load per Node:</b> ${load.toFixed(2)}</p>
+    <p style="color:${load>3?'red':'lightgreen'}">
+      ${load>3?'⚠ Overloaded System':'✔ Balanced System'}
+    </p>
+    `;
+}
+</script>
+
+</body>
+</html>
