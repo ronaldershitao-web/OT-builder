@@ -14,7 +14,7 @@
 
 <body>
 
-<h1>🧠 OT Builder (Guided Academia System)</h1>
+<h1>🧠 OT Builder (Nodes + Flows Architecture)</h1>
 
 <!-- LOGIN (UNCHANGED) -->
 <div id="authBox" class="box">
@@ -29,35 +29,36 @@
 <div id="app" class="hidden">
 
   <div class="box">
-    <h3>🏫 Guided OT System Builder (Academia Template)</h3>
+    <h3>🏫 OT System Builder (Academia Template)</h3>
     <p id="stepLabel">Step 1 of 3</p>
   </div>
 
   <!-- STEP 1 -->
   <div id="step1" class="box">
-    <h3>1. Create Your Academia System</h3>
-    <input id="systemName" placeholder="e.g. University Operations System">
-    <button onclick="nextStep1()">Create System → Next</button>
+    <h3>1. Create System</h3>
+    <input id="systemName" placeholder="e.g. Campus OT System">
+    <button onclick="createSystem()">Create System → Next</button>
   </div>
 
   <!-- STEP 2 -->
   <div id="step2" class="box hidden">
-    <h3>2. Build Your System (ERP / MES / RULE)</h3>
+    <h3>2. Add Nodes (ERP / MES / RULE)</h3>
 
-    <input id="compName" placeholder="Component Name">
+    <input id="nodeName" placeholder="Node Name">
 
-    <select id="compType">
-      <option value="ERP">ERP (Data Layer)</option>
-      <option value="MES">MES (Process Layer)</option>
-      <option value="RULE">RULE (Decision Layer)</option>
+    <select id="nodeType">
+      <option value="ERP">ERP</option>
+      <option value="MES">MES</option>
+      <option value="RULE">RULE</option>
+      <option value="SECURITY">SECURITY</option>
     </select>
 
-    <button onclick="addComponent()">Add Component</button>
+    <button onclick="addNode()">Add Node</button>
     <button onclick="nextStep2()">Next</button>
 
     <div class="box">
-      <h4>📦 System Preview</h4>
-      <div id="components"></div>
+      <h4>📦 Nodes Preview</h4>
+      <div id="nodesView"></div>
     </div>
   </div>
 
@@ -88,7 +89,8 @@ let user = null;
 let currentSystem = null;
 let step = 1;
 
-// -------------------- AUTH (UNCHANGED) --------------------
+/* ---------------- AUTH (UNCHANGED) ---------------- */
+
 async function signup() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
@@ -119,19 +121,16 @@ async function login() {
   loadSystems();
 }
 
-// -------------------- STEP FLOW --------------------
-async function nextStep1(){
-  const name = document.getElementById("systemName").value;
+/* ---------------- SYSTEM CREATION ---------------- */
 
-  if(!name){
-    alert("Enter system name");
-    return;
-  }
+async function createSystem(){
+
+  const name = document.getElementById("systemName").value;
 
   const { data, error } = await client
     .from("systems")
     .insert([{
-      name: name,
+      system_name: name,
       template: "ACADEMIA",
       user_id: user.id
     }])
@@ -141,19 +140,14 @@ async function nextStep1(){
 
   currentSystem = data[0].id;
 
-  // auto-seed guided components (IMPORTANT)
-  await client.from("components").insert([
-    { system_id: currentSystem, type: "ERP", name: "Students" },
-    { system_id: currentSystem, type: "ERP", name: "Courses" },
-    { system_id: currentSystem, type: "MES", name: "Enrollment Flow" },
-    { system_id: currentSystem, type: "RULE", name: "Priority Registration" }
-  ]);
-
   step = 2;
   updateSteps();
-  loadComponents();
+
   loadSystems();
+  loadNodes();
 }
+
+/* ---------------- STEPS ---------------- */
 
 function nextStep2(){
   step = 3;
@@ -161,6 +155,7 @@ function nextStep2(){
 }
 
 function updateSteps(){
+
   document.getElementById("step1").classList.add("hidden");
   document.getElementById("step2").classList.add("hidden");
   document.getElementById("step3").classList.add("hidden");
@@ -171,38 +166,43 @@ function updateSteps(){
     "Step " + step + " of 3";
 }
 
-// -------------------- COMPONENTS --------------------
-async function addComponent(){
-  const name = document.getElementById("compName").value;
-  const type = document.getElementById("compType").value;
+/* ---------------- NODES ---------------- */
+
+async function addNode(){
+
+  const name = document.getElementById("nodeName").value;
+  const type = document.getElementById("nodeType").value;
 
   if(!name || !currentSystem) return;
 
-  await client.from("components").insert([{
+  await client.from("nodes").insert([{
     system_id: currentSystem,
     name,
-    type
+    layer: type
   }]);
 
-  loadComponents();
+  loadNodes();
 }
 
-async function loadComponents(){
+async function loadNodes(){
+
   if(!currentSystem) return;
 
   const { data } = await client
-    .from("components")
+    .from("nodes")
     .select("*")
     .eq("system_id", currentSystem);
 
   if(!data) return;
 
-  document.getElementById("components").innerHTML =
-    data.map(c => `<div>${c.type}: ${c.name}</div>`).join("");
+  document.getElementById("nodesView").innerHTML =
+    data.map(n => `<div>${n.layer}: ${n.name}</div>`).join("");
 }
 
-// -------------------- SYSTEM LIST --------------------
+/* ---------------- SYSTEM LIST ---------------- */
+
 async function loadSystems(){
+
   const { data } = await client
     .from("systems")
     .select("*")
@@ -211,27 +211,30 @@ async function loadSystems(){
   document.getElementById("systemList").innerHTML =
     (data || []).map(s =>
       `<div class="box" onclick="openSystem('${s.id}')">
-        🏫 ${s.name}
+        🏫 ${s.system_name}
       </div>`
     ).join("");
 }
 
 function openSystem(id){
   currentSystem = id;
-  loadComponents();
+  loadNodes();
 }
 
-// -------------------- SIMULATION --------------------
+/* ---------------- SIMULATION ---------------- */
+
 async function runSimulation(){
 
   const { data } = await client
-    .from("components")
+    .from("nodes")
     .select("*")
     .eq("system_id", currentSystem);
 
-  let erp = data.filter(x => x.type === "ERP").length;
-  let mes = data.filter(x => x.type === "MES").length;
-  let rule = data.filter(x => x.type === "RULE").length;
+  if(!data) return;
+
+  let erp = data.filter(x => x.layer === "ERP").length;
+  let mes = data.filter(x => x.layer === "MES").length;
+  let rule = data.filter(x => x.layer === "RULE").length;
 
   let load = mes === 0 ? erp : erp / mes;
 
@@ -239,13 +242,15 @@ async function runSimulation(){
     <p>ERP Nodes: ${erp}</p>
     <p>MES Nodes: ${mes}</p>
     <p>RULE Nodes: ${rule}</p>
-    <p><b>System Load:</b> ${load.toFixed(2)}</p>
+
+    <p><b>Load Index:</b> ${load.toFixed(2)}</p>
 
     <p style="color:${load > 3 ? 'red' : 'lightgreen'}">
       ${load > 3 ? '⚠ Bottleneck Detected' : '✔ System Stable'}
     </p>
   `;
 }
+
 </script>
 
 </body>
