@@ -1,59 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>OT Builder - Architecture Canvas</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <title>OT System Thinking Builder</title>
 
   <style>
     body {
-      font-family: Arial;
+      margin:0;
+      font-family:Arial;
       background:#0f172a;
       color:white;
-      padding:20px;
-    }
-
-    .layout {
       display:flex;
-      gap:10px;
+      height:100vh;
     }
 
-    .box {
+    /* LEFT PANEL */
+    #leftPanel {
+      width:260px;
       background:#111827;
-      padding:15px;
-      border-radius:10px;
-      margin:10px;
-    }
-
-    .hidden { display:none; }
-
-    /* CANVAS */
-    #canvas {
-      width:60%;
-      height:650px;
-      background:#0b1220;
-      border:1px solid #1f2937;
-      position:relative;
-      overflow:hidden;
-    }
-
-    /* NODE */
-    .node {
-      position:absolute;
       padding:10px;
+      overflow:auto;
+    }
+
+    .template {
+      padding:10px;
+      margin:5px;
       background:#1f2937;
       border-radius:8px;
-      cursor:move;
-      min-width:120px;
-      text-align:center;
-      font-size:12px;
-    }
-
-    /* PALETTE */
-    .palette {
-      width:20%;
-      max-height:650px;
-      overflow:auto;
+      cursor:pointer;
     }
 
     .palette-item {
@@ -65,10 +38,71 @@
       font-size:13px;
     }
 
-    .category-title {
-      margin-top:15px;
-      font-weight:bold;
+    /* CENTER CANVAS */
+    #canvas {
+      flex:1;
+      background:#0b1220;
+      position:relative;
+      border-left:1px solid #1f2937;
+      border-right:1px solid #1f2937;
+    }
+
+    .node {
+      position:absolute;
+      padding:10px;
+      background:#1f2937;
+      border-radius:8px;
+      cursor:move;
+      min-width:120px;
+      text-align:center;
+      font-size:12px;
+    }
+
+    /* RIGHT PANEL */
+    #rightPanel {
+      width:300px;
+      background:#111827;
+      padding:10px;
+      overflow:auto;
+    }
+
+    .box {
+      background:#1f2937;
+      padding:10px;
+      border-radius:8px;
+      margin-bottom:10px;
+    }
+
+    .hint {
+      font-size:12px;
       color:#93c5fd;
+      margin-top:5px;
+    }
+
+    button {
+      padding:8px;
+      margin-top:5px;
+      width:100%;
+      cursor:pointer;
+    }
+
+    /* FIREWALL MODAL */
+    #firewallModal {
+      position:fixed;
+      top:20%;
+      left:30%;
+      width:400px;
+      background:#111827;
+      border:1px solid #334155;
+      padding:15px;
+      display:none;
+      z-index:10;
+    }
+
+    input {
+      width:100%;
+      margin:5px 0;
+      padding:6px;
     }
 
   </style>
@@ -76,136 +110,105 @@
 
 <body>
 
-<h1>🧠 OT Builder - Architecture Canvas Designer</h1>
+<!-- LEFT -->
+<div id="leftPanel">
 
-<!-- AUTH -->
-<div id="authBox" class="box">
-  <h3>Login / Sign Up</h3>
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Password">
-  <button onclick="signup()">Sign Up</button>
-  <button onclick="login()">Login</button>
+  <h3>📦 Templates</h3>
+
+  <div class="template" onclick="loadTemplate('campus')">🎓 Campus System</div>
+  <div class="template" onclick="loadTemplate('factory')">🏭 Factory System</div>
+  <div class="template" onclick="loadTemplate('healthcare')">🏥 Healthcare System</div>
+  <div class="template" onclick="loadTemplate('blank')">✨ Blank System</div>
+
+  <hr>
+
+  <h3>🧩 Design Box</h3>
+
+  <div class="palette-item" draggable="true" ondragstart="dragStart(event,'DATABASE')">🗄 Database</div>
+  <div class="palette-item" draggable="true" ondragstart="dragStart(event,'API')">🔗 API</div>
+  <div class="palette-item" draggable="true" ondragstart="dragStart(event,'SERVER')">🖥 Server</div>
+  <div class="palette-item" draggable="true" ondragstart="dragStart(event,'PROCESS')">⚙ Process Engine</div>
+  <div class="palette-item" draggable="true" ondragstart="dragStart(event,'DASHBOARD')">📊 Dashboard</div>
+  <div class="palette-item" draggable="true" ondragstart="dragStart(event,'FIREWALL')">🛡 Firewall</div>
+
 </div>
 
-<!-- APP -->
-<div id="app" class="hidden">
+<!-- CANVAS -->
+<div id="canvas" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
+
+<!-- RIGHT PANEL -->
+<div id="rightPanel">
 
   <div class="box">
-    <h3>🏫 Drag & Drop Architecture Builder</h3>
-    <p>Design real-world OT / IT systems like SAP, MES, Cloud, Healthcare</p>
+    <h3>🧠 System Thinking Panel</h3>
+
+    <b>📥 DATA</b>
+    <div class="hint">Where does data come from?</div>
+
+    <b>⚙ PROCESS</b>
+    <div class="hint">What transforms the data?</div>
+
+    <b>📤 OUTPUT</b>
+    <div class="hint">Where does results go?</div>
+
+    <b>🔐 CONTROL</b>
+    <div class="hint">Who can access it?</div>
   </div>
 
-  <div class="layout">
-
-    <!-- PALETTE -->
-    <div class="box palette">
-
-      <div class="category-title">🏫 Campus Systems</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'STUDENT_SYSTEM')">Student System</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'LMS')">Learning Management</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'ENROLLMENT')">Enrollment System</div>
-
-      <div class="category-title">🏭 Manufacturing / OT</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'MES')">MES Execution System</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'SCADA')">SCADA Control</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'OEE')">OEE Monitoring</div>
-
-      <div class="category-title">📦 Logistics</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'WMS')">Warehouse System</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'TMS')">Transport System</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'TRACKING')">Tracking System</div>
-
-      <div class="category-title">🏥 Healthcare</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'HIS')">Hospital System</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'LIMS')">Lab System</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'PHARMACY')">Pharmacy System</div>
-
-      <div class="category-title">🏢 Enterprise</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'ERP')">ERP System</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'HR')">HR System</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'FINANCE')">Finance System</div>
-
-      <div class="category-title">🔗 Integration</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'API')">API Gateway</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'ESB')">ESB</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'MULESOFT')">MuleSoft</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'MQ')">Message Queue</div>
-
-      <div class="category-title">☁ Infrastructure</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'DB')">Database</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'SERVER')">App Server</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'LB')">Load Balancer</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'CLOUD')">Cloud Node</div>
-
-      <div class="category-title">🔐 Security</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'IAM')">Identity Access</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'FIREWALL')">Firewall</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'AUDIT')">Audit Logs</div>
-
-      <div class="category-title">📡 OT Devices</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'SENSOR')">IoT Sensor</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'ROBOT')">Robot</div>
-      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'CONVEYOR')">Conveyor</div>
-
-    </div>
-
-    <!-- CANVAS -->
-    <div id="canvas"
-         ondragover="allowDrop(event)"
-         ondrop="drop(event)">
-    </div>
-
-    <!-- OUTPUT -->
-    <div class="box" style="width:20%;">
-      <h3>📊 Simulation</h3>
-      <button onclick="runSimulation()">Run</button>
-      <div id="output"></div>
-    </div>
-
+  <div class="box">
+    <h3>📊 System Stats</h3>
+    <button onclick="analyze()">Analyze System</button>
+    <div id="stats"></div>
   </div>
+
+</div>
+
+<!-- FIREWALL CONFIG -->
+<div id="firewallModal">
+  <h3>🛡 Firewall Configuration</h3>
+
+  <label>Allowed IPs</label>
+  <input id="ipInput" placeholder="e.g. 192.168.1.1">
+
+  <label>Access Mode</label>
+  <select id="mode">
+    <option>Open</option>
+    <option>Restricted</option>
+    <option>Private</option>
+  </select>
+
+  <button onclick="saveFirewall()">Save</button>
+  <button onclick="closeFirewall()">Close</button>
 </div>
 
 <script>
-const supabaseUrl = "https://sdskmilncpptrsuxowrb.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkc2ttaWxuY3BwdHJzdXhvd3JiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODExNDIsImV4cCI6MjA5NTI1NzE0Mn0.LGfmAnj_WTngOw_I7NsG9pmIit2hwOUW0IfvwY2WgUU";
 
-const client = supabase.createClient(supabaseUrl, supabaseKey);
-
-let user = null;
-let currentSystem = null;
 let dragType = null;
+let selectedFirewall = null;
+let nodes = [];
 
-/* ---------------- AUTH ---------------- */
+/* ---------------- TEMPLATE ---------------- */
 
-async function signup(){
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+function loadTemplate(type){
 
-  const { error } = await client.auth.signUp({ email, password });
-  if(error) return alert(error.message);
+  nodes = [];
+  document.getElementById("canvas").innerHTML = "";
 
-  alert("Signed up!");
-}
+  const templates = {
+    campus: ["DATABASE","API","PROCESS","DASHBOARD"],
+    factory: ["SERVER","PROCESS","DATABASE","FIREWALL"],
+    healthcare: ["DATABASE","PROCESS","API"],
+    blank: []
+  };
 
-async function login(){
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  const { data, error } = await client.auth.signInWithPassword({
-    email, password
+  (templates[type] || []).forEach((t,i)=>{
+    createNode(t, 50 + i*120, 100);
   });
-
-  if(error) return alert(error.message);
-
-  user = data.user;
-
-  document.getElementById("authBox").classList.add("hidden");
-  document.getElementById("app").classList.remove("hidden");
 }
 
 /* ---------------- DRAG ---------------- */
 
-function dragStart(e, type){
+function dragStart(e,type){
   dragType = type;
 }
 
@@ -213,50 +216,85 @@ function allowDrop(e){
   e.preventDefault();
 }
 
-async function drop(e){
+function drop(e){
   e.preventDefault();
 
   if(!dragType) return;
+
+  createNode(dragType, e.offsetX, e.offsetY);
+  dragType = null;
+}
+
+/* ---------------- NODE CREATION ---------------- */
+
+function createNode(type,x,y){
 
   const canvas = document.getElementById("canvas");
 
   const node = document.createElement("div");
   node.className = "node";
-  node.innerText = dragType;
+  node.innerText = type;
 
-  node.style.left = e.offsetX + "px";
-  node.style.top = e.offsetY + "px";
+  node.style.left = x + "px";
+  node.style.top = y + "px";
+
+  node.dataset.type = type;
 
   node.draggable = true;
 
-  node.ondragend = function(ev){
+  node.ondragend = (ev)=>{
     node.style.left = ev.pageX - canvas.offsetLeft + "px";
     node.style.top = ev.pageY - canvas.offsetTop + "px";
   };
 
+  node.onclick = ()=>{
+    if(type === "FIREWALL"){
+      openFirewall(node);
+    }
+  };
+
   canvas.appendChild(node);
 
-  dragType = null;
+  nodes.push({type,x,y});
 }
 
-/* ---------------- SIMULATION ---------------- */
+/* ---------------- FIREWALL ---------------- */
 
-async function runSimulation(){
+function openFirewall(node){
+  selectedFirewall = node;
+  document.getElementById("firewallModal").style.display = "block";
+}
 
-  const nodes = document.querySelectorAll(".node");
+function closeFirewall(){
+  document.getElementById("firewallModal").style.display = "none";
+}
+
+function saveFirewall(){
+  const ip = document.getElementById("ipInput").value;
+  const mode = document.getElementById("mode").value;
+
+  selectedFirewall.dataset.ip = ip;
+  selectedFirewall.dataset.mode = mode;
+
+  alert("Firewall configured");
+  closeFirewall();
+}
+
+/* ---------------- ANALYSIS ---------------- */
+
+function analyze(){
 
   let count = {};
 
-  nodes.forEach(n => {
-    let key = n.innerText;
-    count[key] = (count[key] || 0) + 1;
+  document.querySelectorAll(".node").forEach(n=>{
+    count[n.dataset.type] = (count[n.dataset.type]||0)+1;
   });
 
-  document.getElementById("output").innerHTML =
-    Object.keys(count).map(k =>
-      `<p>${k}: ${count[k]}</p>`
-    ).join("");
+  document.getElementById("stats").innerHTML =
+    Object.keys(count).map(k=>`<p>${k}: ${count[k]}</p>`).join("");
+
 }
+
 </script>
 
 </body>
