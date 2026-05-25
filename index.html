@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>OT Builder - Full Single File</title>
+  <title>OT Builder Clean</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
@@ -15,18 +15,16 @@
       height:100vh;
     }
 
-    /* AUTH */
     #auth{
       width:100%;
       padding:20px;
     }
 
-    input, button, select{
+    input,button{
       padding:8px;
       margin:5px;
     }
 
-    /* APP LAYOUT */
     #app{
       display:none;
       width:100%;
@@ -69,13 +67,6 @@
       text-align:center;
       font-size:12px;
     }
-
-    .box{
-      background:#1f2937;
-      padding:10px;
-      margin-top:10px;
-      border-radius:8px;
-    }
   </style>
 </head>
 
@@ -88,14 +79,13 @@
   <input id="email" placeholder="email">
   <input id="password" type="password" placeholder="password">
 
-  <button onclick="signup()">Sign Up</button>
   <button onclick="login()">Login</button>
+  <button onclick="signup()">Sign Up</button>
 </div>
 
 <!-- APP -->
 <div id="app">
 
-  <!-- LEFT -->
   <div id="left">
     <h3>Design Box</h3>
 
@@ -113,16 +103,14 @@
     <select id="systems" onchange="loadSystem(this.value)"></select>
   </div>
 
-  <!-- CANVAS -->
   <div id="canvas"
        ondragover="allow(event)"
        ondrop="drop(event)">
   </div>
 
-  <!-- RIGHT -->
   <div id="right">
-    <h3>System Insight</h3>
-    <button onclick="analyze()">Analyze</button>
+    <h3>Analysis</h3>
+    <button onclick="analyze()">Run</button>
     <div id="out"></div>
   </div>
 
@@ -130,33 +118,47 @@
 
 <script>
 
-const supabase = window.supabase.createClient(
+/* =======================
+   SUPABASE (ONLY ONCE)
+======================= */
+
+const client = supabase.createClient(
   "https://sdskmilncpptrsuxowrb.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkc2ttaWxuY3BwdHJzdXhvd3JiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODExNDIsImV4cCI6MjA5NTI1NzE0Mn0.LGfmAnj_WTngOw_I7NsG9pmIit2hwOUW0IfvwY2WgUU"
 );
+
+/* =======================
+   STATE
+======================= */
 
 let user = null;
 let currentSystem = null;
 let dragType = null;
 
-/* ---------------- AUTH ---------------- */
+/* =======================
+   AUTH (GLOBAL SAFE)
+======================= */
 
-async function signup(){
+window.signup = async function () {
+
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  const { error } = await supabase.auth.signUp({ email, password });
+  const { error } = await client.auth.signUp({ email, password });
 
   if(error) return alert(error.message);
-  alert("Check email to confirm");
-}
 
-async function login(){
+  alert("Signup successful (check email if required)");
+};
+
+window.login = async function () {
+
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email, password
+  const { data, error } = await client.auth.signInWithPassword({
+    email,
+    password
   });
 
   if(error) return alert(error.message);
@@ -167,15 +169,17 @@ async function login(){
   document.getElementById("app").style.display = "flex";
 
   loadSystems();
-}
+};
 
-/* ---------------- SYSTEM ---------------- */
+/* =======================
+   SYSTEM
+======================= */
 
-async function createSystem(){
+window.createSystem = async function () {
 
   const name = document.getElementById("sysName").value;
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("systems")
     .insert([{ name, user_id: user.id }])
     .select();
@@ -186,11 +190,11 @@ async function createSystem(){
 
   loadSystems();
   loadNodes();
-}
+};
 
 async function loadSystems(){
 
-  const { data } = await supabase
+  const { data } = await client
     .from("systems")
     .select("*")
     .eq("user_id", user.id);
@@ -210,22 +214,25 @@ async function loadSystems(){
   }
 }
 
-function loadSystem(id){
+window.loadSystem = function(id){
   currentSystem = id;
   loadNodes();
-}
+};
 
-/* ---------------- DRAG DROP ---------------- */
+/* =======================
+   DRAG DROP
+======================= */
 
-function drag(type){
+window.drag = function(type){
   dragType = type;
-}
+};
 
-function allow(e){
+window.allow = function(e){
   e.preventDefault();
-}
+};
 
-async function drop(e){
+window.drop = async function(e){
+
   e.preventDefault();
 
   if(!dragType || !currentSystem) return;
@@ -237,18 +244,20 @@ async function drop(e){
     y: e.offsetY
   };
 
-  await supabase.from("nodes").insert([node]);
+  await client.from("nodes").insert([node]);
 
   renderNode(node);
-}
+};
 
-/* ---------------- NODES ---------------- */
+/* =======================
+   NODES
+======================= */
 
 async function loadNodes(){
 
   document.querySelectorAll(".node").forEach(n=>n.remove());
 
-  const { data } = await supabase
+  const { data } = await client
     .from("nodes")
     .select("*")
     .eq("system_id", currentSystem);
@@ -265,30 +274,16 @@ function renderNode(n){
   div.style.left = n.x + "px";
   div.style.top = n.y + "px";
 
-  div.draggable = true;
-
-  div.ondragend = async (e)=>{
-
-    const x = e.pageX;
-    const y = e.pageY;
-
-    div.style.left = x + "px";
-    div.style.top = y + "px";
-
-    await supabase
-      .from("nodes")
-      .update({ x, y })
-      .eq("id", n.id);
-  };
-
   document.getElementById("canvas").appendChild(div);
 }
 
-/* ---------------- ANALYSIS ---------------- */
+/* =======================
+   ANALYSIS
+======================= */
 
-async function analyze(){
+window.analyze = async function () {
 
-  const { data } = await supabase
+  const { data } = await client
     .from("nodes")
     .select("*")
     .eq("system_id", currentSystem);
@@ -301,9 +296,9 @@ async function analyze(){
 
   document.getElementById("out").innerHTML =
     Object.entries(count)
-    .map(([k,v])=>`<p>${k}: ${v}</p>`)
-    .join("");
-}
+      .map(([k,v])=>`<p>${k}: ${v}</p>`)
+      .join("");
+};
 
 </script>
 
