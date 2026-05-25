@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Smart School Workflow Designer</title>
+  <title>Smart School Workflow Builder</title>
 
   <style>
     body{
@@ -22,165 +22,176 @@
 
     #center{
       flex:1;
-      padding:10px;
       background:#0b1220;
+      padding:10px;
       overflow:auto;
     }
 
     #right{
-      width:280px;
+      width:300px;
       background:#111827;
       padding:10px;
     }
 
-    textarea, select{
-      width:100%;
+    .btn{
+      background:#1f2937;
       padding:8px;
       margin:5px 0;
-      background:#1f2937;
-      color:white;
-      border:none;
+      cursor:pointer;
       border-radius:6px;
+      text-align:center;
     }
 
-    button{
-      padding:8px;
-      margin-top:6px;
-      width:100%;
+    .step{
+      background:#1f2937;
+      padding:10px;
+      margin:6px 0;
+      border-radius:6px;
       cursor:pointer;
     }
 
-    .box{
-      background:#1f2937;
-      padding:8px;
-      margin:5px 0;
+    .flowBox{
+      background:#0f172a;
+      border:1px solid #334155;
+      padding:10px;
+      margin:5px;
       border-radius:6px;
-      font-size:12px;
     }
 
-    .good{color:#22c55e;}
-    .warn{color:#f59e0b;}
-    .bad{color:#ef4444;}
+    .arrow{
+      text-align:center;
+      font-size:18px;
+      opacity:0.7;
+    }
+
+    button{
+      width:100%;
+      padding:8px;
+      margin-top:8px;
+    }
   </style>
 </head>
 
 <body>
 
-<!-- LEFT: WORKFLOW SELECT -->
+<!-- LEFT: COMPONENT LIBRARY -->
 <div id="left">
-  <h3>🎓 Smart School Designer</h3>
+  <h3>🏗️ System Blocks</h3>
 
-  <label>Choose Workflow</label>
-  <select id="workflow">
-    <option value="attendance">Attendance System</option>
-    <option value="fees">Fee Payment System</option>
-    <option value="register">Course Registration</option>
-    <option value="announcement">Announcement System</option>
-  </select>
-
-  <button onclick="loadScenario()">Load Scenario</button>
+  <div class="btn" onclick="addStep('User Login')">User Login</div>
+  <div class="btn" onclick="addStep('Authentication Service')">Auth Service</div>
+  <div class="btn" onclick="addStep('API Gateway')">API Gateway</div>
+  <div class="btn" onclick="addStep('Validation Engine')">Validation</div>
+  <div class="btn" onclick="addStep('Database Write')">Database Write</div>
+  <div class="btn" onclick="addStep('Notification Service')">Notification</div>
+  <div class="btn" onclick="addStep('External System')">External System</div>
 
   <hr>
 
-  <h4>🧠 Step 1: Write Flow</h4>
-  <textarea id="flow" rows="8" placeholder="Write step-by-step what happens..."></textarea>
-
-  <h4>🏗️ Step 2: System Components</h4>
-  <textarea id="arch" rows="8" placeholder="List systems (API, DB, Service, etc.)"></textarea>
-
-  <h4>⚠️ Step 3: Failure Cases</h4>
-  <textarea id="fail" rows="6" placeholder="What can go wrong?"></textarea>
-
-  <button onclick="analyze()">Analyze Design</button>
+  <button onclick="clearFlow()">Reset Flow</button>
 </div>
 
-<!-- CENTER: GUIDANCE -->
+<!-- CENTER: FLOW BUILDER -->
 <div id="center">
-  <h2>📘 Scenario</h2>
-  <div id="scenario" class="box">Select a workflow to begin</div>
+  <h3>🔄 Build System Workflow</h3>
+  <p style="opacity:0.7">Click blocks → build real system execution order</p>
 
-  <h2>🔄 Expected Flow Hint</h2>
-  <div id="hint" class="box">---</div>
+  <div id="flow"></div>
 </div>
 
-<!-- RIGHT: FEEDBACK -->
+<!-- RIGHT: ANALYSIS -->
 <div id="right">
-  <h3>📊 Feedback</h3>
+  <h3>🧠 System Analysis</h3>
+
+  <button onclick="analyze()">Analyze Flow</button>
+
   <div id="out"></div>
 </div>
 
 <script>
 
-const scenarios = {
-  attendance: {
-    text: "A student enters class and attendance is recorded automatically via QR scan.",
-    hint: "Student → Scan QR → Verify identity → Record attendance → Update teacher dashboard"
-  },
-  fees: {
-    text: "A student pays school fees online and receives instant receipt.",
-    hint: "Payment initiated → Validate → Process transaction → Update ledger → Send receipt"
-  },
-  register: {
-    text: "A student enrolls into a course during registration period.",
-    hint: "Login → Select course → Check availability → Check prerequisites → Enroll → Confirm"
-  },
-  announcement: {
-    text: "School sends announcement to all students instantly.",
-    hint: "Admin creates message → Approve → Push notification → Deliver to app/SMS/email"
-  }
-};
+let flow = [];
 
-function loadScenario(){
-  let w = document.getElementById("workflow").value;
-  document.getElementById("scenario").innerText = scenarios[w].text;
-  document.getElementById("hint").innerText = scenarios[w].hint;
+function addStep(name){
+  flow.push(name);
+  render();
+}
+
+function render(){
+
+  let html = "";
+
+  flow.forEach((f,i)=>{
+
+    html += `
+      <div class="flowBox">${f}</div>
+    `;
+
+    if(i < flow.length - 1){
+      html += `<div class="arrow">↓</div>`;
+    }
+
+  });
+
+  document.getElementById("flow").innerHTML = html;
+}
+
+function clearFlow(){
+  flow = [];
+  render();
 }
 
 function analyze(){
 
-  let flow = document.getElementById("flow").value.toLowerCase();
-  let arch = document.getElementById("arch").value.toLowerCase();
-  let fail = document.getElementById("fail").value.toLowerCase();
-
-  let score = 0;
   let out = "";
+  let score = 0;
 
-  // FLOW CHECK
-  if(flow.length > 50){
+  // must have start logic
+  if(flow.includes("User Login")){
+    out += "<p>✔ Entry point exists</p>";
     score++;
-    out += "<p class='good'>✔ Flow described</p>";
   } else {
-    out += "<p class='bad'>✖ Flow too short</p>";
+    out += "<p>✖ Missing user entry flow</p>";
   }
 
-  // ARCH CHECK
-  let keywords = ["api", "database", "service", "auth"];
-  let archScore = keywords.filter(k => arch.includes(k)).length;
-
-  if(archScore >= 2){
+  // must have API logic
+  if(flow.includes("API Gateway")){
+    out += "<p>✔ API layer exists</p>";
     score++;
-    out += "<p class='good'>✔ Architecture components identified</p>";
   } else {
-    out += "<p class='warn'>⚠ Weak architecture mapping</p>";
+    out += "<p>⚠ Missing API Gateway</p>";
   }
 
-  // FAILURE CHECK
-  if(fail.length > 30){
+  // must have data persistence
+  if(flow.includes("Database Write")){
+    out += "<p>✔ Data persistence exists</p>";
     score++;
-    out += "<p class='good'>✔ Failure cases considered</p>";
   } else {
-    out += "<p class='warn'>⚠ Missing failure thinking</p>";
+    out += "<p>⚠ No system storage layer</p>";
   }
 
-  // FINAL SCORE
+  // must have service separation
+  if(flow.includes("Authentication Service") || flow.includes("Validation Engine")){
+    out += "<p>✔ Business logic separation exists</p>";
+    score++;
+  } else {
+    out += "<p>⚠ No service layer logic</p>";
+  }
+
+  // realism check (order logic)
+  if(flow[0] === "User Login"){
+    out += "<p>✔ Correct system entry order</p>";
+    score++;
+  } else {
+    out += "<p>⚠ System does not start correctly</p>";
+  }
+
   out += "<hr>";
 
-  if(score === 3){
-    out += "<p class='good'>🏆 Strong System Design Thinking</p>";
-  } else if(score === 2){
-    out += "<p class='warn'>👍 Good but incomplete</p>";
+  if(score >= 4){
+    out += "<p>🏆 Strong system design workflow</p>";
   } else {
-    out += "<p class='bad'>⚠ Needs improvement</p>";
+    out += "<p>⚠ System flow needs refinement</p>";
   }
 
   document.getElementById("out").innerHTML = out;
