@@ -14,9 +14,9 @@
 
 <body>
 
-<h1>🧠 OT Builder (ERP → MES → RULE → NODE)</h1>
+<h1>🧠 OT Builder (Guided Academia System)</h1>
 
-<!-- LOGIN -->
+<!-- LOGIN (UNCHANGED) -->
 <div id="authBox" class="box">
   <h3>Login / Sign Up</h3>
   <input id="email" placeholder="Email">
@@ -28,42 +28,45 @@
 <!-- APP -->
 <div id="app" class="hidden">
 
-  <!-- STEP INDICATOR -->
   <div class="box">
-    <h3>🧠 OT System Builder (Guided Mode)</h3>
+    <h3>🏫 Guided OT System Builder (Academia Template)</h3>
     <p id="stepLabel">Step 1 of 3</p>
   </div>
 
   <!-- STEP 1 -->
   <div id="step1" class="box">
-    <h3>1. What system do you want to create?</h3>
-    <input id="systemName" placeholder="e.g. Campus OT System">
-    <button onclick="nextStep1()">Next</button>
+    <h3>1. Create Your Academia System</h3>
+    <input id="systemName" placeholder="e.g. University Operations System">
+    <button onclick="nextStep1()">Create System → Next</button>
   </div>
 
   <!-- STEP 2 -->
   <div id="step2" class="box hidden">
-    <h3>2. Add Components (ERP / MES / RULE / NODE)</h3>
+    <h3>2. Build Your System (ERP / MES / RULE)</h3>
 
     <input id="compName" placeholder="Component Name">
 
     <select id="compType">
-      <option value="ERP">ERP (Input System)</option>
-      <option value="MES">MES (Execution)</option>
-      <option value="RULE">RULE (Integration)</option>
-      <option value="NODE">NODE (Load Balancer)</option>
+      <option value="ERP">ERP (Data Layer)</option>
+      <option value="MES">MES (Process Layer)</option>
+      <option value="RULE">RULE (Decision Layer)</option>
     </select>
 
     <button onclick="addComponent()">Add Component</button>
     <button onclick="nextStep2()">Next</button>
 
-    <div id="componentPreview"></div>
+    <div class="box">
+      <h4>📦 System Preview</h4>
+      <div id="components"></div>
+    </div>
   </div>
 
   <!-- STEP 3 -->
   <div id="step3" class="box hidden">
-    <h3>3. System Ready → Run Simulation</h3>
-    <button onclick="run()">▶ Run OT Flow</button>
+    <h3>3. Run Simulation</h3>
+
+    <button onclick="runSimulation()">▶ Run OT Flow</button>
+
     <div id="output"></div>
   </div>
 
@@ -83,21 +86,16 @@ const client = supabase.createClient(supabaseUrl, supabaseKey);
 
 let user = null;
 let currentSystem = null;
+let step = 1;
 
-// AUTH
+// -------------------- AUTH (UNCHANGED) --------------------
 async function signup() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  const { data, error } = await client.auth.signUp({
-    email,
-    password
-  });
+  const { error } = await client.auth.signUp({ email, password });
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
+  if (error) return alert(error.message);
 
   alert("Sign up successful!");
 }
@@ -111,10 +109,7 @@ async function login() {
     password
   });
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
+  if (error) return alert(error.message);
 
   user = data.user;
 
@@ -124,98 +119,40 @@ async function login() {
   loadSystems();
 }
 
-// CREATE SYSTEM
-async function createSystem(){
+// -------------------- STEP FLOW --------------------
+async function nextStep1(){
   const name = document.getElementById("systemName").value;
 
-  const { data } = await client
+  if(!name){
+    alert("Enter system name");
+    return;
+  }
+
+  const { data, error } = await client
     .from("systems")
-    .insert([{ system_name: name, user_id: user.id }])
+    .insert([{
+      system_name: name,
+      template: "ACADEMIA",
+      user_id: user.id
+    }])
     .select();
+
+  if(error) return alert(error.message);
 
   currentSystem = data[0].id;
 
-  loadSystems();
-}
-
-// ADD COMPONENT
-async function addComponent(){
-  const name = document.getElementById("compName").value;
-  const type = document.getElementById("compType").value;
-
-  await client.from("components").insert([{
-    system_id: currentSystem,
-    name,
-    type
-  }]);
-
-  loadComponents();
-}
-
-// LOAD SYSTEMS
-async function loadSystems(){
-  const { data } = await client
-    .from("systems")
-    .select("*")
-    .eq("user_id", user.id);
-
-  document.getElementById("systemList").innerHTML =
-    data.map(s =>
-      `<div class="box" onclick="openSystem('${s.id}')">
-        ${s.system_name}
-      </div>`
-    ).join("");
-}
-
-function openSystem(id){
-  currentSystem = id;
-  loadComponents();
-}
-
-// LOAD COMPONENTS
-async function loadComponents(){
-  const { data } = await client
-    .from("components")
-    .select("*")
-    .eq("system_id", currentSystem);
-
-  document.getElementById("components").innerHTML =
-    data.map(c => `<div>${c.type}: ${c.name}</div>`).join("");
-}
-
-// SIMULATION
-async function run(){
-  const { data } = await client
-    .from("components")
-    .select("*")
-    .eq("system_id", currentSystem);
-
-  let erp = data.filter(x => x.type === "ERP").length;
-  let mes = data.filter(x => x.type === "MES").length;
-  let node = data.filter(x => x.type === "NODE").length;
-
-  let load = (erp + mes) / (node || 1);
-
-  document.getElementById("output").innerHTML =
-    `
-    <p>ERP: ${erp}</p>
-    <p>MES: ${mes}</p>
-    <p>NODES: ${node}</p>
-    <p><b>Load per Node:</b> ${load.toFixed(2)}</p>
-    <p style="color:${load>3?'red':'lightgreen'}">
-      ${load>3?'⚠ Overloaded System':'✔ Balanced System'}
-    </p>
-    `;
-}
-
-  let step = 1;
-let tempComponents = [];
-
-function nextStep1(){
-  createSystem(); // reuse your existing function
+  // auto-seed guided components (IMPORTANT)
+  await client.from("components").insert([
+    { system_id: currentSystem, type: "ERP", name: "Students" },
+    { system_id: currentSystem, type: "ERP", name: "Courses" },
+    { system_id: currentSystem, type: "MES", name: "Enrollment Flow" },
+    { system_id: currentSystem, type: "RULE", name: "Priority Registration" }
+  ]);
 
   step = 2;
   updateSteps();
+  loadComponents();
+  loadSystems();
 }
 
 function nextStep2(){
@@ -234,12 +171,12 @@ function updateSteps(){
     "Step " + step + " of 3";
 }
 
-// override addComponent to show preview
+// -------------------- COMPONENTS --------------------
 async function addComponent(){
   const name = document.getElementById("compName").value;
   const type = document.getElementById("compType").value;
 
-  if(!name) return;
+  if(!name || !currentSystem) return;
 
   await client.from("components").insert([{
     system_id: currentSystem,
@@ -247,12 +184,67 @@ async function addComponent(){
     type
   }]);
 
-  tempComponents.push({name, type});
+  loadComponents();
+}
 
-  document.getElementById("componentPreview").innerHTML =
-    tempComponents.map(c =>
-      `<div>${c.type}: ${c.name}</div>`
+async function loadComponents(){
+  if(!currentSystem) return;
+
+  const { data } = await client
+    .from("components")
+    .select("*")
+    .eq("system_id", currentSystem);
+
+  if(!data) return;
+
+  document.getElementById("components").innerHTML =
+    data.map(c => `<div>${c.type}: ${c.name}</div>`).join("");
+}
+
+// -------------------- SYSTEM LIST --------------------
+async function loadSystems(){
+  const { data } = await client
+    .from("systems")
+    .select("*")
+    .eq("user_id", user.id);
+
+  document.getElementById("systemList").innerHTML =
+    (data || []).map(s =>
+      `<div class="box" onclick="openSystem('${s.id}')">
+        🏫 ${s.system_name}
+      </div>`
     ).join("");
+}
+
+function openSystem(id){
+  currentSystem = id;
+  loadComponents();
+}
+
+// -------------------- SIMULATION --------------------
+async function runSimulation(){
+
+  const { data } = await client
+    .from("components")
+    .select("*")
+    .eq("system_id", currentSystem);
+
+  let erp = data.filter(x => x.type === "ERP").length;
+  let mes = data.filter(x => x.type === "MES").length;
+  let rule = data.filter(x => x.type === "RULE").length;
+
+  let load = mes === 0 ? erp : erp / mes;
+
+  document.getElementById("output").innerHTML = `
+    <p>ERP Nodes: ${erp}</p>
+    <p>MES Nodes: ${mes}</p>
+    <p>RULE Nodes: ${rule}</p>
+    <p><b>System Load:</b> ${load.toFixed(2)}</p>
+
+    <p style="color:${load > 3 ? 'red' : 'lightgreen'}">
+      ${load > 3 ? '⚠ Bottleneck Detected' : '✔ System Stable'}
+    </p>
+  `;
 }
 </script>
 
