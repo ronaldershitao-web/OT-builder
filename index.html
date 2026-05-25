@@ -1,22 +1,65 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>OT Builder Platform</title>
+  <title>OT Builder - Canvas Architecture</title>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
   <style>
-    body { font-family: Arial; background:#0f172a; color:white; padding:20px; }
-    input, select, button { padding:10px; margin:5px; }
-    .box { background:#111827; padding:15px; margin-top:10px; border-radius:10px; }
+    body {
+      font-family: Arial;
+      background:#0f172a;
+      color:white;
+      padding:20px;
+    }
+
+    .box {
+      background:#111827;
+      padding:15px;
+      border-radius:10px;
+      margin:10px;
+    }
+
     .hidden { display:none; }
+
+    .layout {
+      display:flex;
+      gap:10px;
+    }
+
+    #canvas {
+      width:60%;
+      height:600px;
+      background:#0b1220;
+      position:relative;
+      border:1px solid #1f2937;
+    }
+
+    .node {
+      position:absolute;
+      padding:10px;
+      background:#1f2937;
+      border-radius:8px;
+      cursor:move;
+      min-width:100px;
+      text-align:center;
+    }
+
+    .palette-item {
+      padding:8px;
+      margin:5px;
+      background:#1f2937;
+      border-radius:6px;
+      cursor:grab;
+    }
   </style>
 </head>
 
 <body>
 
-<h1>🧠 OT Builder (Nodes + Flows Architecture)</h1>
+<h1>🧠 OT Builder (Canvas Architecture Designer)</h1>
 
-<!-- LOGIN (UNCHANGED) -->
+<!-- AUTH -->
 <div id="authBox" class="box">
   <h3>Login / Sign Up</h3>
   <input id="email" placeholder="Email">
@@ -29,52 +72,38 @@
 <div id="app" class="hidden">
 
   <div class="box">
-    <h3>🏫 OT System Builder (Academia Template)</h3>
-    <p id="stepLabel">Step 1 of 3</p>
+    <h3>🏫 OT Architecture Canvas</h3>
   </div>
 
-  <!-- STEP 1 -->
-  <div id="step1" class="box">
-    <h3>1. Create System</h3>
-    <input id="systemName" placeholder="e.g. Campus OT System">
-    <button onclick="createSystem()">Create System → Next</button>
-  </div>
+  <div class="layout">
 
-  <!-- STEP 2 -->
-  <div id="step2" class="box hidden">
-    <h3>2. Add Nodes (ERP / MES / RULE)</h3>
+    <!-- PALETTE -->
+    <div class="box" style="width:20%;">
+      <h3>🧩 Design Box</h3>
 
-    <input id="nodeName" placeholder="Node Name">
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'ERP')">📦 ERP</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'MES')">⚙ MES</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'RULE')">📜 RULE</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'DB')">🗄 Database</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'LB')">⚖ Load Balancer</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'MULE')">🔗 MuleSoft</div>
+      <div class="palette-item" draggable="true" ondragstart="dragStart(event,'SAP')">📘 SAP Module</div>
 
-    <select id="nodeType">
-      <option value="ERP">ERP</option>
-      <option value="MES">MES</option>
-      <option value="RULE">RULE</option>
-      <option value="SECURITY">SECURITY</option>
-    </select>
-
-    <button onclick="addNode()">Add Node</button>
-    <button onclick="nextStep2()">Next</button>
-
-    <div class="box">
-      <h4>📦 Nodes Preview</h4>
-      <div id="nodesView"></div>
     </div>
-  </div>
 
-  <!-- STEP 3 -->
-  <div id="step3" class="box hidden">
-    <h3>3. Run Simulation</h3>
+    <!-- CANVAS -->
+    <div id="canvas"
+         ondragover="allowDrop(event)"
+         ondrop="drop(event)">
+    </div>
 
-    <button onclick="runSimulation()">▶ Run OT Flow</button>
+    <!-- INFO -->
+    <div class="box" style="width:20%;">
+      <h3>📊 System View</h3>
+      <button onclick="runSimulation()">Run Simulation</button>
+      <div id="output"></div>
+    </div>
 
-    <div id="output"></div>
-  </div>
-
-  <!-- SYSTEM LIST -->
-  <div class="box">
-    <h3>Your Systems</h3>
-    <div id="systemList"></div>
   </div>
 
 </div>
@@ -87,138 +116,79 @@ const client = supabase.createClient(supabaseUrl, supabaseKey);
 
 let user = null;
 let currentSystem = null;
-let step = 1;
+let dragType = null;
 
-/* ---------------- AUTH (UNCHANGED) ---------------- */
+/* ---------------- AUTH ---------------- */
 
-async function signup() {
+async function signup(){
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
   const { error } = await client.auth.signUp({ email, password });
+  if(error) return alert(error.message);
 
-  if (error) return alert(error.message);
-
-  alert("Sign up successful!");
+  alert("Signed up!");
 }
 
-async function login() {
+async function login(){
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
   const { data, error } = await client.auth.signInWithPassword({
-    email,
-    password
+    email, password
   });
 
-  if (error) return alert(error.message);
+  if(error) return alert(error.message);
 
   user = data.user;
 
   document.getElementById("authBox").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
-
-  loadSystems();
 }
 
-/* ---------------- SYSTEM CREATION ---------------- */
+/* ---------------- DRAG SYSTEM ---------------- */
 
-async function createSystem(){
-
-  const name = document.getElementById("systemName").value;
-
-  const { data, error } = await client
-    .from("systems")
-    .insert([{
-      system_name: name,
-      template: "ACADEMIA",
-      user_id: user.id
-    }])
-    .select();
-
-  if(error) return alert(error.message);
-
-  currentSystem = data[0].id;
-
-  step = 2;
-  updateSteps();
-
-  loadSystems();
-  loadNodes();
+function dragStart(e, type){
+  dragType = type;
 }
 
-/* ---------------- STEPS ---------------- */
-
-function nextStep2(){
-  step = 3;
-  updateSteps();
+function allowDrop(e){
+  e.preventDefault();
 }
 
-function updateSteps(){
+async function drop(e){
+  e.preventDefault();
 
-  document.getElementById("step1").classList.add("hidden");
-  document.getElementById("step2").classList.add("hidden");
-  document.getElementById("step3").classList.add("hidden");
+  if(!dragType) return;
 
-  document.getElementById("step" + step).classList.remove("hidden");
+  const canvas = document.getElementById("canvas");
 
-  document.getElementById("stepLabel").innerText =
-    "Step " + step + " of 3";
-}
+  const node = document.createElement("div");
+  node.className = "node";
+  node.innerText = dragType;
 
-/* ---------------- NODES ---------------- */
+  node.style.left = e.offsetX + "px";
+  node.style.top = e.offsetY + "px";
 
-async function addNode(){
+  node.draggable = true;
 
-  const name = document.getElementById("nodeName").value;
-  const type = document.getElementById("nodeType").value;
+  node.ondragend = function(ev){
+    node.style.left = ev.pageX - canvas.offsetLeft + "px";
+    node.style.top = ev.pageY - canvas.offsetTop + "px";
+  };
 
-  if(!name || !currentSystem) return;
+  canvas.appendChild(node);
 
-  await client.from("nodes").insert([{
-    system_id: currentSystem,
-    name,
-    layer: type
-  }]);
+  /* SAVE TO SUPABASE */
+  if(currentSystem){
+    await client.from("nodes").insert([{
+      system_id: currentSystem,
+      name: dragType,
+      layer: dragType
+    }]);
+  }
 
-  loadNodes();
-}
-
-async function loadNodes(){
-
-  if(!currentSystem) return;
-
-  const { data } = await client
-    .from("nodes")
-    .select("*")
-    .eq("system_id", currentSystem);
-
-  if(!data) return;
-
-  document.getElementById("nodesView").innerHTML =
-    data.map(n => `<div>${n.layer}: ${n.name}</div>`).join("");
-}
-
-/* ---------------- SYSTEM LIST ---------------- */
-
-async function loadSystems(){
-
-  const { data } = await client
-    .from("systems")
-    .select("*")
-    .eq("user_id", user.id);
-
-  document.getElementById("systemList").innerHTML =
-    (data || []).map(s =>
-      `<div class="box" onclick="openSystem('${s.id}')">
-        🏫 ${s.system_name}
-      </div>`
-    ).join("");
-}
-
-function openSystem(id){
-  currentSystem = id;
-  loadNodes();
+  dragType = null;
 }
 
 /* ---------------- SIMULATION ---------------- */
@@ -232,16 +202,18 @@ async function runSimulation(){
 
   if(!data) return;
 
-  let erp = data.filter(x => x.layer === "ERP").length;
-  let mes = data.filter(x => x.layer === "MES").length;
-  let rule = data.filter(x => x.layer === "RULE").length;
+  let erp = data.filter(n => n.layer === "ERP").length;
+  let mes = data.filter(n => n.layer === "MES").length;
+  let rule = data.filter(n => n.layer === "RULE").length;
+  let db = data.filter(n => n.layer === "DB").length;
 
   let load = mes === 0 ? erp : erp / mes;
 
   document.getElementById("output").innerHTML = `
-    <p>ERP Nodes: ${erp}</p>
-    <p>MES Nodes: ${mes}</p>
-    <p>RULE Nodes: ${rule}</p>
+    <p>ERP: ${erp}</p>
+    <p>MES: ${mes}</p>
+    <p>RULE: ${rule}</p>
+    <p>DB: ${db}</p>
 
     <p><b>Load Index:</b> ${load.toFixed(2)}</p>
 
@@ -250,7 +222,6 @@ async function runSimulation(){
     </p>
   `;
 }
-
 </script>
 
 </body>
